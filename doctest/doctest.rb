@@ -10,7 +10,7 @@ def run_examples(object)
         ex.gsub!('#=>', '=>')
         hash = instance_eval("{ #{ex} }")
         if hash.keys.first != hash.values.first
-          puts "Incorrect @example in ('#{path}':#{object.line}):"
+          puts "Incorrect @example (##{exnum}) in ('#{path}':#{object.line}):"
           puts "\tExpecting '#{hash.values[0]}', got '#{hash.keys[0]}'"
         end
       rescue => e
