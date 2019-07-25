@@ -1,0 +1,589 @@
+# yard-examples
+Examples from my Montreal.rb talk (slides at http://is.gd/14bdd)
+От 19412b3c39168a56c3277b7c0562bfa31409036e Пон Сеп 17 00:00:00 2001
+От: Anthony Roux <anthony.roux@amadeus.com>
+Дата: Чт, 21 Мар 2019 19:47:28 +0100
+Тема: [PATCH 1/6] добавя API за избор на полет
+
+---
+ lib / amadeus.rb | 1 +
+ lib / amadeus / client.rb | 2 + -
+ lib / amadeus / клиент / request.rb | 13 + -
+ ... / пространства за имена / пазаруване / flight_offers.rb | 9 ++
+ ... / пазаруване / flight_offers / prediction.rb | 34 +++++
+ ... / пазаруване / flight_offers / prediction.spec.rb | 117 ++++++++++++++++++
+ 6 променени файла, 171 вмъквания (+), 5 изтривания (-)
+ създай режим 100644 lib / amadeus / namespaces / shopping / flight_offers / prediction.rb
+ създайте режим 100644 spec / namespaces / shopping / flight_offers / prediction.spec.rb
+
+diff - затвори a / lib / amadeus.rb b / lib / amadeus.rb
+индекс d74d6ae..ae4561e 100644
+--- a / lib / amadeus.rb
++++ b / lib / amadeus.rb
+@@ -20,6 +20,7 @@
+ изискват "amadeus / namespaces / reference_data / locations / airports"
+ изискват „amadeus / namespaces / shopping / flight_destinations“
+ изисква "amadeus / namespaces / shopping / flight_offers"
++ изисква "amadeus / namespaces / shopping / flight_offers / предсказване"
+ изискват „amadeus / namespaces / shopping / flight_dates“
+ изисква "amadeus / namespaces / shopping / hotel_offers"
+ изисква "amadeus / namespaces / shopping / hotel_offer"
+diff - затвори a / lib / amadeus / client.rb b / lib / amadeus / client.rb
+индекс 120d99e..36b12ac 100644
+--- a / lib / amadeus / client.rb
++++ b / lib / amadeus / client.rb
+@@ -26,7 +26,7 @@ клас Клиент
+     # Краткото име на хоста, използвано за извършване на API извиквания
+     attr_reader: име на хост
+     # Домейнът на хоста, използван за извършване на API извиквания
+- attr_reader: хост
++ attr_writer: хост
+     # За да използвате HTTPS за свързване
+     attr_reader: ssl
+     # Портът за свързване, ако не и по подразбиране 443
+diff - git a / lib / amadeus / клиент / request.rb b / lib / amadeus / клиент / request.rb
+индекс fbbc627..99d1593 100644
+--- a / lib / amadeus / клиент / request.rb
++++ b / lib / amadeus / клиент / заявка.бр
+@@ -99,7 +99,8 @@ def initialize_extras (опции)
+     def initialize_headers
+       @headers = {
+         'User-Agent' => build_user_agent,
+- 'Accept' => 'application / json, application / vnd.amadeus + json'
++ 'Accept' => 'application / json, application / vnd.amadeus + json',
++ 'x-api-key' => 'xDOCjEDVOsMw2TxWMGBbckgtXEAsHF2zupXwJIh0'
+       }
+     край
+ 
+@@ -110,9 +111,13 @@ def request_for_verb
+ 
+     def add_post_data (заявка)
+       return, освен ако @verb ==: POST
+-
+- @headers ['Content-Type'] = 'заявка / x-www-form-urlencoded'
+- request.form_data = @params
++ ако @ bearer_token.nil?
++ @headers ['Content-Type'] = 'заявка / x-www-form-urlencoded'
++ request.form_data = @params
++ друго
++ @headers ['Content-Type'] = 'заявка / json'
++ request.body = @params
++ end
+     край
+ 
+     def add_bearer_token (_request)
+diff - git a / lib / amadeus / имена / пазаруване / flight_offers.rb b / lib / amadeus / namespaces / shopping / flight_offers.rb
+индекс a8afc48..9cc5c5d 100644
+--- a / lib / amadeus / имена / shopping / flight_offers.rb
++++ b / lib / amadeus / имена / пазаруване / flight_offers.rb
+@@ -12,6 +12,15 @@ клас пазаруване
+       # amadeus.shopping.flight_offers
+       #
+       клас FlightOffers <Amadeus :: Клиент :: Декоратор
++ # Пространство от имена за API за прогнозиране:
++ #
++ # @return [Amadeus :: Именни пространства :: Пазаруване :: FlightOffers :: Прогноза]
++ # @example
++ # amadeus.shopping.flight-offers.prediction
++ #
++ предсказване на def
++ Amadeus :: Пространства на имена :: Пазаруване :: FlightOffers :: Prediction.new (клиент)
++ end
+         # Намерете най-евтините полети за резервации.
+         #
+         # @Option PARAMS [String]: произход на града / Летище код IATA, от които
+diff --git a / lib / amadeus / имена / shopping / flight_offers / prediction.rb b / lib / amadeus / имена / пазаруване / flight_offers / prediction.rb
+нов файлов режим 100644
+индекс 0000000..4021d3e
+--- / dev / null
++++ b / lib / amadeus / имена / пазаруване / flight_offers / prediction.rb
+@@ -0,0 +1,34 @@
++ # frozen_string_literal: true
++
++ модул Amadeus
++ модул пространства на имената
++ клас пазаруване
++ клас FlightOffers
++ # Променен клиент за имената
++ # + / v1 / пазаруване / оферти за полети / прогнози + крайни точки
++ #
++ # Достъп чрез обекта + Amadeus :: Client +
++ #
++ # amadeus = Amadeus :: Client.new
++ # amadeus.shopping.flight-offers.prediction
++ #
++ клас Прогноза <Amadeus :: Клиент :: Декоратор
++ # Връща списък с оферти за полети, включително предсказване на избор за всеки един от тях.
++ #
++ # @option body [JSON]: отговора на JSON на тялото на API за търсене на полети с ниска цена
++ # @return [Amadeus :: Response] анализиран отговор
++ # @raise [Amadeus :: Base] изключение, ако повикването
++ # не бе успешно
++ # @example TODO:
++ # amadeus.shopping.flight-offers.prediction.post (body: flight_offers_response)
++ #
++ def post (params = {})
++ # client.post ('/ v1 / пазаруване / полет_оферти / прогнозиране', параметри)
++ client.host = 'prod-bizox.1a-lab.net'
++ client.post ('/ v1 / predict', params)
++ end
++ end
++ end
++ end
++ end
++ край
+diff - git a / spec / имена / shopping / flight_offers / prediction.spec.rb b / spec / имена / shopping / flight_offers / prediction.spec.rb
+нов файлов режим 100644
+индекс 0000000..d5d8bac
+--- / dev / null
++++ b / spec / имена / пазаруване / flight_offers / prediction.spec.rb
+@@ -0,0 +1,117 @@
++ # frozen_string_literal: true
++
++ изисква „spec_helper“
++
++ RSpec.describe Amadeus :: Пространства на имена :: Пазаруване :: FlightOffers :: Прогнози правят
++ преди това
++ @client = double ("Amadeus :: Client")
++ @api = Amadeus :: Пространства на имена :: Пазаруване :: FlightOffers :: Prediction.new (@client)
++ end
++
++ опишете ".post"
++ тя "трябва да се обадите на client.post с правилното тяло"
++ тяло = 
++ '{
++ "data": [
++ {
++ "type": "оферта за полет",
++ "id": "1550657908557--1279609842",
++ "offerItems": [
++ {
++ "услуги": [
++ {
++ "сегменти": [
++ {
++ "flightSegment": {
++ "заминаване": {
++ "iataCode": "MAD",
++ "терминал": "4",
++ "at": "2019-08-02T11: 25: 00 + 02: 00"
++},
++ "пристигане": {
++ "iataCode": "XCR",
++ "at": "2019-08-02T13: 35: 00 + 02: 00"
++},
++ "carrierCode": "IB",
++ "number": "8540",
++ "самолет": {
++ "код": "CRK"
++},
++ "работещ": {
++ "carrierCode": "YW",
++ "number": "8540"
++},
++ "продължителност": "0DT2H10M"
++},
++ „ценообразуванеДетайленПотребител за възрастни“: {
++ "travelClass": "ИКОНОМИКА",
++ "fareClass": "A",
++ "наличност": 4,
++ "fareBasis": "ADNNU0B4"
++}
++}
++]
++}
++],
++ "цена": {
++ "общо": "35.44",
++ "totalTaxes": "19.44"
++},
++ "pricePerAdult": {
++ "общо": "35.44",
++ "totalTaxes": "19.44"
++}
++}
++]
++}
++],
++ "речници": {
++ "превозвачи": {
++ "IB": "IBERIA",
++ "YW": "AIR NOSTRUM"
++},
++ „валути“: {
++ "EUR": "EURO"
++},
++ "самолет": {
++ "CRK": "CANADAIR REGIONAL JET 1000"
++},
++ „location“: {
++ "MAD": {
++ "subType": "AIRPORT",
++ "detailName": "ADOLFO SUAREZ BARAJAS"
++},
++ "XCR": {
++ "subType": "AIRPORT",
++ "detailName": "CHALONS VATRY"
++}
++}
++},
++ "meta": {
++ „връзки“: {
++ "self": "https://api.amadeus.com/v1/shopping/flight-offers?origin=MAD&destination=PAR&departureDate=2019-08-02&adults=1&nonStop=false&max=1"
++},
++ "валута": "EUR",
++ „по подразбиране“: {
++ "nonStop": невярно,
++ "възрастни": 1
++}
++}
++} '
++
++ очаквате (@client) .да получите (: post).
++ '/ v1 / пазаруване / оферти за полети / предвиждане', тяло
++)
++
++ @ api.post (тяло)
++ end
++
++ то „трябва да е по подразбиране за празен хеш“
++ очаквате (@client) .да получите (: post).
++ '/ v1 / пазаруване / оферти за полети / прогнозиране', {}
++)
++
++ @ api.post
++ end
++ end
++ край
+
+От e6d310b738c9532cadfe21bb1591c2a90e1e0f6f Пон Сеп 17 00:00:00 2001
+От: Anthony Roux <anthony.roux@amadeus.com>
+Дата: Чт, 21 Мар 2019 19:47:28 +0100
+Тема: [PATCH 2/6] добавя API за избор на полет
+
+---
+ lib / amadeus.rb | 1 +
+ lib / amadeus / client.rb | 2 + -
+ lib / amadeus / клиент / request.rb | 13 + -
+ ... / пространства за имена / пазаруване / flight_offers.rb | 9 ++
+ ... / пазаруване / flight_offers / prediction.rb | 34 +++++
+ ... / пазаруване / flight_offers / prediction.spec.rb | 117 ++++++++++++++++++
+ 6 променени файла, 171 вмъквания (+), 5 изтривания (-)
+ създай режим 100644 lib / amadeus / namespaces / shopping / flight_offers / prediction.rb
+ създайте режим 100644 spec / namespaces / shopping / flight_offers / prediction.spec.rb
+
+diff - затвори a / lib / amadeus.rb b / lib / amadeus.rb
+индекс d74d6ae..ae4561e 100644
+--- a / lib / amadeus.rb
++++ b / lib / amadeus.rb
+@@ -20,6 +20,7 @@
+ изискват "amadeus / namespaces / reference_data / locations / airports"
+ изискват „amadeus / namespaces / shopping / flight_destinations“
+ изисква "amadeus / namespaces / shopping / flight_offers"
++ изисква "amadeus / namespaces / shopping / flight_offers / предсказване"
+ изискват „amadeus / namespaces / shopping / flight_dates“
+ изисква "amadeus / namespaces / shopping / hotel_offers"
+ изисква "amadeus / namespaces / shopping / hotel_offer"
+diff - затвори a / lib / amadeus / client.rb b / lib / amadeus / client.rb
+индекс 120d99e..36b12ac 100644
+--- a / lib / amadeus / client.rb
++++ b / lib / amadeus / client.rb
+@@ -26,7 +26,7 @@ клас Клиент
+     # Краткото име на хоста, използвано за извършване на API извиквания
+     attr_reader: име на хост
+     # Домейнът на хоста, използван за извършване на API извиквания
+- attr_reader: хост
++ attr_writer: хост
+     # За да използвате HTTPS за свързване
+     attr_reader: ssl
+     # Портът за свързване, ако не и по подразбиране 443
+diff - git a / lib / amadeus / клиент / request.rb b / lib / amadeus / клиент / request.rb
+индекс fbbc627..99d1593 100644
+--- a / lib / amadeus / клиент / request.rb
++++ b / lib / amadeus / клиент / заявка.бр
+@@ -99,7 +99,8 @@ def initialize_extras (опции)
+     def initialize_headers
+       @headers = {
+         'User-Agent' => build_user_agent,
+- 'Accept' => 'application / json, application / vnd.amadeus + json'
++ 'Accept' => 'application / json, application / vnd.amadeus + json',
++ 'x-api-key' => 'xDOCjEDVOsMw2TxWMGBbckgtXEAsHF2zupXwJIh0'
+       }
+     край
+ 
+@@ -110,9 +111,13 @@ def request_for_verb
+ 
+     def add_post_data (заявка)
+       return, освен ако @verb ==: POST
+-
+- @headers ['Content-Type'] = 'заявка / x-www-form-urlencoded'
+- request.form_data = @params
++ ако @ bearer_token.nil?
++ @headers ['Content-Type'] = 'заявка / x-www-form-urlencoded'
++ request.form_data = @params
++ друго
++ @headers ['Content-Type'] = 'заявка / json'
++ request.body = @params
++ end
+     край
+ 
+     def add_bearer_token (_request)
+diff - git a / lib / amadeus / имена / пазаруване / flight_offers.rb b / lib / amadeus / namespaces / shopping / flight_offers.rb
+индекс a8afc48..9cc5c5d 100644
+--- a / lib / amadeus / имена / shopping / flight_offers.rb
++++ b / lib / amadeus / имена / пазаруване / flight_offers.rb
+@@ -12,6 +12,15 @@ клас пазаруване
+       # amadeus.shopping.flight_offers
+       #
+       клас FlightOffers <Amadeus :: Клиент :: Декоратор
++ # Пространство от имена за API за прогнозиране:
++ #
++ # @return [Amadeus :: Именни пространства :: Пазаруване :: FlightOffers :: Прогноза]
++ # @example
++ # amadeus.shopping.flight-offers.prediction
++ #
++ предсказване на def
++ Amadeus :: Пространства на имена :: Пазаруване :: FlightOffers :: Prediction.new (клиент)
++ end
+         # Намерете най-евтините полети за резервации.
+         #
+         # @Option PARAMS [String]: произход на града / Летище код IATA, от които
+diff --git a / lib / amadeus / имена / shopping / flight_offers / prediction.rb b / lib / amadeus / имена / пазаруване / flight_offers / prediction.rb
+нов файлов режим 100644
+индекс 0000000..4021d3e
+--- / dev / null
++++ b / lib / amadeus / имена / пазаруване / flight_offers / prediction.rb
+@@ -0,0 +1,34 @@
++ # frozen_string_literal: true
++
++ модул Amadeus
++ модул пространства на имената
++ клас пазаруване
++ клас FlightOffers
++ # Променен клиент за имената
++ # + / v1 / пазаруване / оферти за полети / прогнози + крайни точки
++ #
++ # Достъп чрез обекта + Amadeus :: Client +
++ #
++ # amadeus = Amadeus :: Client.new
++ # amadeus.shopping.flight-offers.prediction
++ #
++ клас Прогноза <Amadeus :: Клиент :: Декоратор
++ # Връща списък с оферти за полети, включително предсказване на избор за всеки един от тях.
++ #
++ # @option body [JSON]: отговора на JSON на тялото на API за търсене на полети с ниска цена
++ # @return [Amadeus :: Response] анализиран отговор
++ # @raise [Amadeus :: Base] изключение, ако повикването
++ # не бе успешно
++ # @example TODO:
++ # amadeus.shopping.flight-offers.prediction.post (body: flight_offers_response)
++ #
++ def post (params = {})
++ # client.post ('/ v1 / пазаруване / полет_оферти / прогнозиране', параметри)
++ client.host = 'prod-bizox.1a-lab.net'
++ client.post ('/ v1 / predict', params)
++ end
++ end
++ end
++ end
++ end
++ край
+diff - git a / spec / имена / shopping / flight_offers / prediction.spec.rb b / spec / имена / shopping / flight_offers / prediction.spec.rb
+нов файлов режим 100644
+индекс 0000000..d5d8bac
+--- / dev / null
++++ b / spec / имена / пазаруване / flight_offers / prediction.spec.rb
+@@ -0,0 +1,117 @@
++ # frozen_string_literal: true
++
++ изисква „spec_helper“
++
++ RSpec.describe Amadeus :: Пространства на имена :: Пазаруване :: FlightOffers :: Прогнози правят
++ преди това
++ @client = double ("Amadeus :: Client")
++ @api = Amadeus :: Пространства на имена :: Пазаруване :: FlightOffers :: Prediction.new (@client)
++ end
++
++ опишете ".post"
++ тя "трябва да се обадите на client.post с правилното тяло"
++ тяло = 
++ '{
++ "data": [
++ {
++ "type": "оферта за полет",
++ "id": "1550657908557--1279609842",
++ "offerItems": [
++ {
++ "услуги": [
++ {
++ "сегменти": [
++ {
++ "flightSegment": {
++ "заминаване": {
++ "iataCode": "MAD",
++ "терминал": "4",
++ "at": "2019-08-02T11: 25: 00 + 02: 00"
++},
++ "пристигане": {
++ "iataCode": "XCR",
++ "at": "2019-08-02T13: 35: 00 + 02: 00"
++},
++ "carrierCode": "IB",
++ "number": "8540",
++ "самолет": {
++ "код": "CRK"
++},
++ "работещ": {
++ "carrierCode": "YW",
++ "number": "8540"
++},
++ "продължителност": "0DT2H10M"
++},
++ „ценообразуванеДетайленПотребител за възрастни“: {
++ "travelClass": "ИКОНОМИКА",
++ "fareClass": "A",
++ "наличност": 4,
++ "fareBasis": "ADNNU0B4"
++}
++}
++]
++}
++],
++ "цена": {
++ "общо": "35.44",
++ "totalTaxes": "19.44"
++},
++ "pricePerAdult": {
++ "общо": "35.44",
++ "totalTaxes": "19.44"
++}
++}
++]
++}
++],
++ "речници": {
++ "превозвачи": {
++ "IB": "IBERIA",
++ "YW": "AIR NOSTRUM"
++},
++ „валути“: {
++ "EUR": "EURO"
++},
++ "самолет": {
++ "CRK": "CANADAIR REGIONAL JET 1000"
++},
++ „location“: {
++ "MAD": {
++ "subType": "AIRPORT",
++ "detailName": "ADOLFO SUAREZ BARAJAS"
++},
++ "XCR": {
++ "subType": "AIRPORT",
++ "detailName": "CHALONS VATRY"
++}
++}
++},
++ "meta": {
++ „връзки“: {
++ "self": "https://api.amadeus.com/v1/shopping/flight-offers?origin=MAD&destination=PAR&departureDate=2019-08-02&adults=1&nonStop=false&max=1"
++},
++ "валута": "EUR",
++ „по подразбиране“: {
++ "nonStop": невярно,
++ "възрастни": 1
++}
++}
++} '
++
++ очаквате (@client) .да получите (: post).
++ '/ v1 / пазаруване / оферти за полети / предвиждане', тяло
++)
++
++ @ api.post (тяло)
++ end
++
++ то „трябва да е по подразбиране за празен хеш“
++ очаквате (@client) .да получите (: post).
++ '/ v1 / пазаруване / оферти за полети / прогнозиране', {}
++)
++
++ @ api.post
++ end
++ end
++ край
+
+От 42cfe6ff5d2811cda34351b373c0171956759e8d Пон Сеп 17 00:00:00 2001
+От: Anthony Roux <anthony.roux@amadeus.com>
+Дата: Сряда, 8 Май 2019 16:54:44 +0200
+Тема: [PATCH 3/6] Добавяне на поддръжка за предвиждане на избор на полет
+
+---
+ .rubocop.yml | 2 +
+ .rubocop_todo.yml | 7 -
+ CHANGELOG.md | 4 +
+ README.md | 6 ++
+ amadeus.gemspec | 1 +
+ lib / amadeus / client.rb | 2 + -
+ lib / amadeus / клиент / request.rb | 6 + -
+ ... / пространства за имена / пазаруване / flight_offers.rb | 1 +
+ ... / пазаруване / flight_offers / prediction.rb | 8 + -
+ spec / client / http_spec.rb | 17 ++ -
+ spec / client / request_spec.rb | 4 + -
+ ... / пазаруване / flight_offers / prediction.spec.rb | 89 + ------------------
+ 12 променени файла, 32 вмъквания (+), 115 заличавания (-)
+
+diff - затвори a / .rubocop.yml b / .rubocop.yml
+индекс 4342002..a06a379 100644
+--- a / .rubocop.yml
++++ b / .rubocop.yml
+@@ -3,6 +3,7 @@ inherit_from: .rubocop_todo.yml
+ Metrics / BlockLength:
+   Изключване:
+     - "** / * _ spec.rb"
++ - "спецификации / пространства за имена / пазаруване / flight_offers / prediction.spec.rb"
+     - "amadeus.gemspec"
+ Layout / SpaceBeforeBlockBraces:
+   Изключване:
+@@ -10,5 +11,6 @@ Layout / SpaceBeforeBlockBraces:
+ Стил / HashSyntax:
+   Изключване:
+     - "spec / client / request / hash_spec.rb"
++ - "spec / client / request_spec.rb"
+ AllCops:
+   TargetRubyVersion: 2.2
+diff - git a / .rubocop_todo.yml b / .rubocop_todo.yml
+индекс 446b3ee..6fc846e 100644
+--- a / .rubocop_todo.yml
++++ b / .rubocop_todo.yml
+@@ -12,13 +12,6 @@ Layout / SpaceAfterComma:
+   Изключване:
+     - "amadeus.gemspec"
+ 
+- # Брой престъпления: 1
+- # Cop подкрепя --auto-correct.
+- # Конфигурационни параметри: AllowInHeredoc.
+-Layout / TrailingWhitespace:
+- Изключване:
+- - 'spec / namespaces / travel / analytics / air_traffic / searching_by_destination.rb'
+-
+ # Брой престъпления: 1
+ # Конфигурационни параметри: CountComments, ExcludedMethods.
+ # ИзключениМетоди: прецизиране
+diff - затвори a / CHANGELOG.md b / CHANGELOG.md
+индекс edfc1a2..9a753f0 100644
+--- a / CHANGELOG.md
++++ b / CHANGELOG.md
+@@ -1,4 +1,8 @@
+ # Changelog
++ ## 3.2.0 - 2019-05-08
++ Освобождаване на [API за прогнозиране на полета] (https://developers.amadeus.com/self-service/category/air/api-doc/flight-choice-prediction)
++
++> API за прогнозиране на избор на полети позволява на разработчиците да прогнозират възможностите за избор на пътници в контекста на търсенето и пазаруването. Излагайки услугите за машинно обучение и AI за пътуване, този API изразходва изхода на API за търсене на полети с ниска цена и връща увеличено съдържание с вероятности за избор за всяка оферта за полети.
+ 3.1.0 - 2019-03-25
+ Освобождаване на [Point of Interest API] (https://developers.amadeus.com/self-service/category/210/api-doc/55)
+ 
+diff - затвори a / README.md b / README.md
+индекс c649010..0c0c3f0 100644
+--- a / README.md
++++ b / README.md
+@@ -183,6 +183,12 @@ amadeus.shopping.flight_dates.get (на
